@@ -1,27 +1,51 @@
-# version: '3'  # <--- La versión ya no es necesaria especificarla
+# Define la versión del formato de archivo docker-compose.
+# Es una buena práctica especificarla.
+version: '3.8'
 
 services:
+  # --- Servicio de la Base de Datos PostgreSQL ---
   db:
+    # Nombre personalizado para el contenedor. Si no lo pones, Docker asigna uno aleatorio.
     container_name: postgres_database
+    # Imagen de Docker que se usará. En este caso, PostgreSQL versión 15.1.
     image: postgres:15.1
     volumes:
-      # - postgres-db:/var/lib/postgresql/data # ejemplo
+      # Monta un "bind mount". Conecta la carpeta './postgres' de tu máquina local
+      # con la carpeta '/var/lib/postgresql/data' dentro del contenedor.
+      # Esto logra la PERSISTENCIA DE DATOS: aunque borres el contenedor,
+      # tus datos seguirán en la carpeta local './postgres'.
       - ./postgres:/var/lib/postgresql/data
     environment:
+      # Variables de entorno para configurar el contenedor de Postgres.
+      # Aquí se define la contraseña para el usuario 'postgres' (superusuario).
       - POSTGRES_PASSWORD=123456
+      # ports:
+      # - "5432:5432" # Descomenta esta línea si necesitas acceder a la BD
+      # desde una aplicación en tu máquina local (fuera de Docker).
 
+      # --- Servicio del Administrador Gráfico pgAdmin ---
   pgAdmin:
+    # 'depends_on' asegura que el servicio 'db' se inicie *antes* que 'pgAdmin'.
+    # Esto evita que pgAdmin intente conectarse a una BD que aún no está lista.
     depends_on:
       - db
+    # Imagen de Docker para pgAdmin 4, versión 6.17.
     image: dpage/pgadmin4:6.17
+    # Nombre personalizado para este contenedor.
+    container_name: pgadmin_interface
     ports:
+      # Mapea el puerto 8080 de tu máquina local al puerto 80 del contenedor.
+      # Podrás acceder a pgAdmin desde http://localhost:8080 en tu navegador.
       - "8080:80"
     volumes:
+      # Persiste la configuración de pgAdmin (servidores guardados, preferencias, etc.)
+      # en la carpeta local './pgadmin'.
       - ./pgadmin:/var/lib/pgadmin
     environment:
-      - PGADMIN_DEFAULT_PASSWORD=123456
+      # Credenciales para el primer inicio de sesión en la interfaz web de pgAdmin.
       - PGADMIN_DEFAULT_EMAIL=superman@google.com
+      - PGADMIN_DEFAULT_PASSWORD=123456
 
-# volumes:
-#   postgres-db:
-#     external: true
+# La sección 'volumes' que comentaste es para "named volumes" (volúmenes gestionados por Docker).
+# Lo que estás usando (ej. './postgres') se llama "bind mount" (carpetas locales).
+# Ambas son formas válidas de persistir datos.
